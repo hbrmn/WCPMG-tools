@@ -1,0 +1,29 @@
+Metadata-Version: 2.1
+Name: cpmg-tools-mbusskamp
+Version: 0.21
+Summary: A package to process and analyse cpmg-type SSNMR experiments
+Home-page: https://zivgitlab.uni-muenster.de/ak-hansen/programming/nmr_tools/-/tree/master
+Author: Max Busskamp
+Author-email: max.busskamp@uni-muenster.de
+License: UNKNOWN
+Project-URL: Bug Tracker, https://zivgitlab.uni-muenster.de/ak-hansen/programming/nmr_tools/-/issues
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Development Status :: 4 - Beta
+Classifier: Framework :: Matplotlib
+Classifier: Intended Audience :: Science/Research
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+License-File: LICENSE
+
+# nmr_tools
+
+This project contains the NMR Tools python project, which aims to deliver various processing and simulation tools.
+
+#Setup
+Provisional installation guide:
+ - Install package from dist/ with pip using:
+    - pip install /absolute/path/to/package/tar.gz
+
+

@@ -1,0 +1,13 @@
+LICENSE
+README.md
+pyproject.toml
+setup.cfg
+src/cpmg_tools/__init__.py
+src/cpmg_tools/processing.py
+src/cpmg_tools/simpson.py
+src/cpmg_tools/svd_auto.py
+src/cpmg_tools_mbusskamp.egg-info/PKG-INFO
+src/cpmg_tools_mbusskamp.egg-info/SOURCES.txt
+src/cpmg_tools_mbusskamp.egg-info/dependency_links.txt
+src/cpmg_tools_mbusskamp.egg-info/requires.txt
+src/cpmg_tools_mbusskamp.egg-info/top_level.txt
