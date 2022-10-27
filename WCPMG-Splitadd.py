@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-"""
+""" Code for the
+
 Created on Tue Oct 25 10:33:41 2022
 
-@author: Henrik B.
-Idea to circumvent FID addition if the total echo length in points is an odd
-number: Slice the FID, FFT and then add the resulting spectra
+@author: Henrik Bradtmüller - mail@bradtmueller.net - https://hbrmn.github.io/
+
 """
 import csv
 import numpy as np
@@ -15,12 +15,14 @@ from matplotlib import pyplot as plt
 name = r'Test'
 # path = r'C:\Users\edwu5ea1\data_work\600MHz SC\nmr\93Nb-SiLiNb\58\pdata\1'
 path = r'C:\Users\edwu5ea1\data_work\Projects\1_SiO2-Li2O-Nb2O5\93Nb_NMR\Static\240MHz\221014-93Nb-LS22PCT-UFWCPMG_2.fid'
-number_of_echoes_to_add = 1
-first_echo = 1
-vendor = 'varian'
-export_data = 'y'
+
+first_echo = 1 # First acquisition period to consider to the addition
+number_of_echoes_to_add = 1 # Number of subsequent acquisition periods to add
+vendor = 'varian' # 'varian' or 'bruker'
+export_data = 'y' # 'y' or anything else
 zero_fill = 18 * 1024
-normalize_spectrum = 'y'
+normalize_spectrum = 'y' # 'y' or anything else
+
 ##### Built-in functions
 
 ##### Export the spectrum in DMFit format for easy use in Origin and ssNake
@@ -77,6 +79,7 @@ elif vendor == 'varian':
     relative_offset_frequency = (
         np.float64(dic['procpar']['sfrq']['values'][0])
         - carrier_freq) * 1e6
+    dwell_time = np.round(1/spectral_width * 1e6, decimals=4)
 
     # rof1 is the delay before receiver unblank
     rof1 = float(dic['procpar']['rof1']['values'][0])
@@ -85,21 +88,17 @@ elif vendor == 'varian':
     # rof3 is (probably) the delay after receiver blank
     rof3 = float(dic['procpar']['rof3']['values'][0])
 
+    ##### Blanking and Pulsing block
+    loop_length = float(dic['procpar']['tauXcpmg']['values'][0])
     pulse_length = float(dic['procpar']['pwXcpmg']['values'][0])
     pre_pulse_blank = float(dic['procpar']['r2Xcpmg']['values'][0])
     post_pulse_blank = float(dic['procpar']['r3Xcpmg']['values'][0])
-    loop_length = float(dic['procpar']['tauXcpmg']['values'][0])
-
     blank_length = (pulse_length + pre_pulse_blank + post_pulse_blank +
                     rof2 + 0.1) + 3.3 # 3.3 unknown
 
     echo_length = loop_length - (pulse_length + pre_pulse_blank +
-                                 post_pulse_blank + rof2  + 0.1) # 0.1 unknown
-    echo_length = rof1 + echo_length + rof3 + rof3 # 0.6 is found
-
-    spectral_width = float(dic['procpar']['sw']['values'][0])
-
-    dwell_time = np.round(1/spectral_width * 1e6, decimals=4)
+                                 post_pulse_blank + rof2
+                                 + 0.1) + rof1 + 2 * rof3 # origin of 0.1 unknown
 
     ##### Calculate delays and pulse durations in points
     blank_length_points = (blank_length / dwell_time)
@@ -109,16 +108,17 @@ elif vendor == 'varian':
 
     data = rawdata
 
-    ##### Initial zero filling to be able to use the same code as for Bruker
-    zero_fill_length = np.round(echo_length_points - np.where(rawdata == 0)[0][0] +
-                        blank_block)
+    ##### Initial zero filling, here achieved by rolling the data,
+    ##### to be able to use the same code as for Bruker
+    zero_fill_length = np.round(echo_length_points -
+                                np.where(rawdata == 0)[0][0] + blank_block)
     data = ng.process.proc_base.roll(data, pts=zero_fill_length, neg=False)
-
 
 ##### Initialize fid variable to store the added FIDs
 fid = np.array([0])
 spec = np.array([0])
-#####
+
+##### Adding of FIDs
 for i in range(number_of_echoes_to_add):
 
     echo_start = (int(blank_block * (i+first_echo)
@@ -148,7 +148,6 @@ ppm_scale = freq_scale/carrier_freq
 # Selecting data size out of array
 sfo_point = (int(np.round(length/2)+ (relative_offset_frequency /
                                       (spectral_width/length))))
-
 
 ##### Show spikelett spectrum for debugging
 spec_compare = ng.proc_base.zf_size(rawdata, zero_fill)
