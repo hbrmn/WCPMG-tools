@@ -2,7 +2,7 @@
 """
 Created on Tue Oct 25 10:33:41 2022
 
-@author: edwu5ea1
+@author: Henrik B.
 Idea to circumvent FID addition if the total echo length in points is an odd
 number: Slice the FID, FFT and then add the resulting spectra
 """
@@ -13,26 +13,72 @@ from matplotlib import pyplot as plt
 
 ##### User Input
 name = r'Test'
-path = r'C:\Users\HB\data_work\600MHz SC\nmr\93Nb-SiLiNb\58\pdata\1'
+# path = r'C:\Users\HB\data_work\600MHz SC\nmr\93Nb-SiLiNb\58\pdata\1'
+path = r'C:\Users\HB\data_work\Projects\1_SiO2-Li2O-Nb2O5\93Nb_NMR\Static\240MHz\221014-93Nb-LS22PCT-UFWCPMG_2.fid'
 number_of_echoes_to_add = 20
 first_echo = 1
-#####
+vendor = 'varian'
+export = 'y'
 
-dic, rawdata = ng.bruker.read(path)
-rawdata = ng.bruker.remove_digital_filter(dic, rawdata)
-data = rawdata
+##### Built-in functions
+
+##### Export the spectrum in DMFit format for easy use in Origin and ssNake
+def export(xaxis, yaxis, xlab, ylab, result=None):
+
+    exp_var = zip(xaxis, yaxis)
+    with open(path + '\\' + name
+              + '.txt', 'w') as file:
+        writer = csv.writer(file, delimiter=' ', lineterminator='\n')
+        writer.writerow(('ti:' + name, '', ''))
+        writer.writerow((xlab, ylab, result))
+        writer = csv.writer(file, delimiter='\t', lineterminator='\n')
+        for word in exp_var:
+            writer.writerows([word])
+
+##### Load experimental parameters
+
+if vendor == 'bruker':
+    dic, rawdata = ng.bruker.read(path)
+    rawdata = ng.bruker.remove_digital_filter(dic, rawdata)
+    
+    num_echoes = dic['acqus']['L'][22]
+    pulse_length = dic['acqus']['P'][1]
+    echo_length = dic['acqus']['D'][6] * 1e6
+    blank_length = dic['acqus']['D'][3] * 1e6
+    spectral_width = dic['acqus']['SW_h']
+    dwell_time = np.round(1/(2*spectral_width) * 1e6, decimals=4)
+    
+    carrier_freq = dic['acqus']['SFO1']
+    spectral_width = dic['acqus']['SW_h']
+    relative_offset_frequency = (dic['acqus']['O1'] 
+                                 - (dic['procs']['SF'] 
+                                    - dic['acqus']['BF1']) * 1e6)
+    data = rawdata
+    
+elif vendor == 'varian':
+    dic, rawdata = ng.varian.read(path)
+    # rawdata = rawdata[0]
+    carrier_freq = np.float64(
+        dic['procpar']['reffrq1']['values'][0])
+    spectral_width = np.float64(
+        dic['procpar']['sw']['values'][0])
+    relative_offset_frequency = (
+        np.float64(dic['procpar']['sfrq']['values'][0])
+        - carrier_freq) * 1e6
+    
+    num_echoes = dic['acqus']['L'][22]
+    pulse_length = dic['acqus']['P'][1]
+    echo_length = dic['acqus']['D'][6] * 1e6
+    blank_length = dic['acqus']['D'][3] * 1e6
+    spectral_width = dic['acqus']['SW_h']
+    dwell_time = np.round(1/(2*spectral_width) * 1e6, decimals=4)
+    
+    
+    data = rawdata
 
 ##### Phasing of the FID for debugging
 # data = ng.proc_autophase.autops(rawdata, "acme", p0=0, p1=0)
 # data = np.abs(rawdata)
-
-##### Get parameters from dictionary
-num_echoes = dic['acqus']['L'][22]
-pulse_length = dic['acqus']['P'][1]
-echo_length = dic['acqus']['D'][6] * 1e6
-blank_length = dic['acqus']['D'][3] * 1e6
-spectral_width = dic['acqus']['SW_h']
-dwell_time = np.round(1/(2*spectral_width) * 1e6, decimals=4)
 
 ##### Calculate delays and pulse durations in points
 pulse_length_points = (pulse_length / dwell_time) / 2
@@ -64,10 +110,7 @@ spec = ng.proc_base.fft(fid)
 
 spec = ng.proc_base.rev(spec)
 length = spec.shape[data.ndim - 1]
-carrier_freq = dic['acqus']['SFO1']
-spectral_width = dic['acqus']['SW_h']
-relative_offset_frequency = (dic['acqus']['O1']- (dic['procs']['SF']
-                                                  - dic['acqus']['BF1']) * 1e6)
+
 
 freq_scale = (
     (np.arange((spectral_width/2) + relative_offset_frequency,
@@ -93,20 +136,11 @@ plt.plot(ppm_scale, np.abs(spec_compare))
 plt.plot(ppm_scale, np.abs(spec))
 plt.gca().invert_xaxis()
 
-##### Export the spectrum in DMFit format for easy use in Origin and ssNake
-def export(xaxis, yaxis, xlab, ylab, result=None):
 
-    exp_var = zip(xaxis, yaxis)
-    with open(path + '\\' + name
-              + '.txt', 'w') as file:
-        writer = csv.writer(file, delimiter=' ', lineterminator='\n')
-        writer.writerow(('ti:' + name, '', ''))
-        writer.writerow((xlab, ylab, result))
-        writer = csv.writer(file, delimiter='\t', lineterminator='\n')
-        for word in exp_var:
-            writer.writerows([word])
-
-export(freq_scale, abs(spec), '##freq', np.round(dic['procs']['SF'], decimals=5))
+            
+if export == 'y':
+    export(freq_scale, abs(spec), '##freq', 
+           np.round(dic['procs']['SF'], decimals=5))
 
 
 
