@@ -12,20 +12,21 @@ import nmrglue as ng
 from matplotlib import pyplot as plt
 
 ##### User Input
-name = r'Test'
-# path = r'C:\Users\edwu5ea1\data_work\600MHz SC\nmr\93Nb-SiLiNb\58\pdata\1'
-path = r'C:\Users\edwu5ea1\data_work\Projects\1_SiO2-Li2O-Nb2O5\93Nb_NMR\Static\240MHz\221014-93Nb-LS22PCT-UFWCPMG_2.fid'
+name = r'LNS45_echo0-3'
+path = r'C:\Users\edwu5ea1\data_work\600MHz SC\nmr\93Nb-SiLiNb\58\pdata\1'
+# path = r'C:\Users\edwu5ea1\data_work\Projects\1_SiO2-Li2O-Nb2O5\93Nb_NMR\Static\240MHz\221014-93Nb-LNS45-UFWCPMG.fid'
 
 first_echo = 1 # First acquisition period to consider to the addition
-number_of_echoes_to_add = 1 # Number of subsequent acquisition periods to add
-vendor = 'varian' # 'varian' or 'bruker'
-export_data = 'y' # 'y' or anything else
+number_of_echoes_to_add = 3 # Number of subsequent acquisition periods to add
+vendor = 'bruker' # 'varian' or 'bruker'
 zero_fill = 18 * 1024
 normalize_spectrum = 'y' # 'y' or anything else
+export_data = 'n' # 'y' or anything else
 
 ##### Built-in functions
 
 ##### Export the spectrum in DMFit format for easy use in Origin and ssNake
+
 def export(xaxis, yaxis, xlab, ylab, result=None):
 
     exp_var = zip(xaxis, yaxis)
@@ -61,8 +62,8 @@ if vendor == 'bruker':
     ##### Calculate delays and pulse durations in points
     pulse_length_points = (pulse_length / dwell_time) / 2
     blank_length_points = (blank_length / dwell_time) / 2
-    echo_length_points = (echo_length/dwell_time) / 2
-    blank_block = pulse_length_points + 2 * blank_length_points
+    echo_length_points  = (echo_length  / dwell_time) / 2
+    blank_block  = pulse_length_points + 2 * blank_length_points
     echo_to_echo = blank_block + echo_length_points
 
     data = rawdata
@@ -153,19 +154,21 @@ sfo_point = (int(np.round(length/2)+ (relative_offset_frequency /
 spec_compare = ng.proc_base.zf_size(rawdata, zero_fill)
 spec_compare = ng.proc_base.fft(spec_compare)
 
+spec_compare = np.abs(spec_compare)
+spec = np.abs(spec)
+
 if vendor == 'bruker':
     spec_compare = ng.proc_base.rev(spec_compare)
 
 if normalize_spectrum == 'y':
-    spec_compare = np.abs(spec_compare)
     spec_compare = spec_compare/np.max(spec_compare)
-    spec = np.abs(spec)
     spec = spec/np.max(spec)
+
 
 ##### Plot spectrum from added FIDs
 figure = fig = plt.figure()
-plt.plot(ppm_scale, spec_compare)
-plt.plot(ppm_scale, spec)
+plt.plot(ppm_scale, spec_compare, color='gray')
+plt.plot(ppm_scale, spec, color='b')
 plt.gca().invert_xaxis()
 
 if export_data == 'y':
